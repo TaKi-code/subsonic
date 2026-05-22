@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AccountButton } from "./AccountButton";
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -43,6 +44,9 @@ export function Nav() {
               </Link>
             );
           })}
+          <div className="ml-1 border-l border-white/10 pl-2">
+            <AccountButton />
+          </div>
         </nav>
       </div>
     </header>
