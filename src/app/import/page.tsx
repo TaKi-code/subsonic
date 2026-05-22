@@ -1,9 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { parseLibraryExport, type ImportResult } from "@/lib/import/csv";
+import { parseLibrary, type ImportResult, type LibraryFormat } from "@/lib/import";
 import { useLibrary } from "@/lib/library/useLibrary";
 import { CamelotBadge, EnergyMeter } from "@/components/ui";
+
+const FORMAT_LABEL: Record<LibraryFormat, string> = {
+  csv: "CSV / TSV",
+  rekordbox: "Rekordbox XML",
+  traktor: "Traktor NML",
+  unknown: "Unrecognized",
+};
 
 const SAMPLE_CSV = `name,artist,bpm,key,genre,label,time,comment
 Submerged,Vault Theory,132,Am,Techno,Semantica,6:48,Energy 7
@@ -24,7 +31,7 @@ export default function ImportPage() {
     setText(raw);
     setFileName(name ?? null);
     setJustImported(0);
-    setResult(raw.trim() ? parseLibraryExport(raw) : null);
+    setResult(raw.trim() ? parseLibrary(raw, name) : null);
   }
 
   async function onFile(file: File) {
@@ -55,9 +62,10 @@ export default function ImportPage() {
         <span className="label-cap">Bring your own crate</span>
         <h1 className="mt-1 text-3xl font-bold text-white">Import library</h1>
         <p className="mt-1 max-w-2xl text-sm text-white/55">
-          Drop a CSV/TXT export from Rekordbox, Serato, Traktor or Mixed In Key. The importer
-          auto-detects columns and converts musical/Open-Key notation to Camelot. Everything stays
-          in your browser — your tracks then flow through Discover, the Set Builder, and the Analyzer.
+          Drop a <span className="text-white/80">Rekordbox XML</span>, <span className="text-white/80">Traktor .nml</span>,
+          or CSV/TSV export (Serato &amp; others). The importer auto-detects the format and converts
+          musical/Open-Key notation to Camelot. Everything stays in your browser — your tracks then
+          flow through Discover, the Set Builder, and the Analyzer.
         </p>
       </div>
 
@@ -94,11 +102,11 @@ export default function ImportPage() {
             <div className="text-sm font-medium text-white/80">
               {fileName ? fileName : "Drop a file or click to browse"}
             </div>
-            <div className="text-xs text-white/40">.csv or .txt · Rekordbox / Serato / Traktor exports</div>
+            <div className="text-xs text-white/40">.xml · .nml · .csv · .txt — Rekordbox / Traktor / Serato exports</div>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.txt,.tsv,text/csv,text/plain"
+              accept=".csv,.txt,.tsv,.xml,.nml,text/csv,text/plain,text/xml,application/xml"
               className="hidden"
               onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
             />
@@ -134,10 +142,15 @@ export default function ImportPage() {
           {result && (
             <>
               <div className="panel space-y-3 p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white/80">
-                    Detected {result.rowsParsed} track(s)
-                  </h3>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-white/80">
+                      Detected {result.rowsParsed} track(s)
+                    </h3>
+                    <span className="chip border-neon-cyan/30 bg-neon-cyan/10 text-[10px] text-neon-cyan">
+                      {FORMAT_LABEL[result.format]}
+                    </span>
+                  </div>
                   <button
                     onClick={confirmImport}
                     disabled={result.rowsParsed === 0}
@@ -147,23 +160,25 @@ export default function ImportPage() {
                   </button>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5">
-                  {(["title", "artist", "bpm", "key", "genre", "energy", "label", "duration"] as const).map(
-                    (f) => (
-                      <span
-                        key={f}
-                        className={`chip text-[10px] ${
-                          cols[f]
-                            ? "border-neon-lime/30 bg-neon-lime/10 text-neon-lime"
-                            : "border-white/10 bg-white/5 text-white/30"
-                        }`}
-                        title={cols[f] ? `mapped from "${cols[f]}"` : "not found"}
-                      >
-                        {cols[f] ? "✓" : "—"} {f}
-                      </span>
-                    ),
-                  )}
-                </div>
+                {result.format === "csv" && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["title", "artist", "bpm", "key", "genre", "energy", "label", "duration"] as const).map(
+                      (f) => (
+                        <span
+                          key={f}
+                          className={`chip text-[10px] ${
+                            cols[f]
+                              ? "border-neon-lime/30 bg-neon-lime/10 text-neon-lime"
+                              : "border-white/10 bg-white/5 text-white/30"
+                          }`}
+                          title={cols[f] ? `mapped from "${cols[f]}"` : "not found"}
+                        >
+                          {cols[f] ? "✓" : "—"} {f}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                )}
 
                 {result.warnings.length > 0 && (
                   <ul className="space-y-1">

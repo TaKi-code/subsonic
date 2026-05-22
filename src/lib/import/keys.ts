@@ -18,6 +18,25 @@ function wrap12(n: number): number {
   return ((n - 1) % 12 + 12) % 12 + 1;
 }
 
+// Chromatic note order from C, used to decode Traktor's numeric key field.
+const NOTE_INDEX = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+/** Look up the Camelot key for a musical root note + mode. */
+export function noteToCamelot(root: string, isMinor: boolean): CamelotKey | null {
+  return (isMinor ? MINOR_TO_CAMELOT : MAJOR_TO_CAMELOT)[root] ?? null;
+}
+
+/**
+ * Decode Traktor's MUSICAL_KEY VALUE (0-23): 0-11 are major keys and 12-23 are
+ * minor keys, both chromatic from C. Returns Camelot, or null if out of range.
+ */
+export function fromTraktorKeyValue(value: number): CamelotKey | null {
+  if (!Number.isInteger(value) || value < 0 || value > 23) return null;
+  const isMinor = value >= 12;
+  const root = NOTE_INDEX[value % 12];
+  return noteToCamelot(root, isMinor);
+}
+
 /**
  * Convert a key string from a DJ-software export into Camelot notation.
  * Handles Camelot ("8A"), Open Key ("1m"/"1d"), and musical notation

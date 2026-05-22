@@ -1,27 +1,12 @@
-import type { Track, Genre, Source } from "@/lib/types";
+import type { Track } from "@/lib/types";
 import { toCamelot } from "./keys";
-import { normalizeGenre } from "./genre";
-
-export interface ImportResult {
-  tracks: Track[];
-  warnings: string[];
-  rowsParsed: number;
-  rowsSkipped: number;
-  /** Which library columns were detected, for UI feedback. */
-  detectedColumns: Partial<Record<Field, string>>;
-}
-
-type Field =
-  | "title"
-  | "artist"
-  | "bpm"
-  | "key"
-  | "genre"
-  | "label"
-  | "year"
-  | "duration"
-  | "energy"
-  | "comments";
+import {
+  buildTrack,
+  energyFromComment,
+  parseBpm,
+  type Field,
+  type ImportResult,
+} from "./track";
 
 // Header aliases across Rekordbox / Serato / Traktor / generic exports.
 const HEADER_ALIASES: Record<Field, string[]> = {
@@ -42,7 +27,7 @@ export function parseLibraryExport(text: string): ImportResult {
   const warnings: string[] = [];
   const lines = text.split(/\r\n|\r|\n/).filter((l) => l.trim().length > 0);
   if (lines.length < 2) {
-    return { tracks: [], warnings: ["File has no data rows."], rowsParsed: 0, rowsSkipped: 0, detectedColumns: {} };
+    return { tracks: [], warnings: ["File has no data rows."], rowsParsed: 0, rowsSkipped: 0, format: "csv", detectedColumns: {} };
   }
 
   const delimiter = lines[0].includes("\t") ? "\t" : ",";
@@ -77,49 +62,32 @@ export function parseLibraryExport(text: string): ImportResult {
     }
 
     const rawKey = get("key");
-    let camelot = toCamelot(rawKey);
-    if (!camelot) {
-      camelot = "8A"; // neutral default so the engine still runs
-      if (rawKey) unparsedKeys++;
-    }
+    const key = toCamelot(rawKey);
+    if (!key && rawKey) unparsedKeys++;
 
-    const rawGenre = get("genre");
-    const genre: Genre = normalizeGenre(rawGenre);
-    const comments = get("comments");
-    const energy = parseEnergy(get("energy"), comments);
+    const directEnergy = parseInt(get("energy"), 10);
+    const energy =
+      directEnergy >= 1 && directEnergy <= 10 ? directEnergy : energyFromComment(get("comments"));
 
-    const tags = ["imported"];
-    if (rawGenre && rawGenre.toLowerCase() !== genre.toLowerCase()) tags.push(rawGenre.toLowerCase());
-
-    const artist = get("artist") || "Unknown Artist";
-    tracks.push({
-      id: `imp-${hash(`${artist}|${title}|${bpm}`)}`,
-      title,
-      artist,
-      label: get("label") || "Unknown",
-      genre,
-      subgenre: rawGenre || undefined,
-      bpm,
-      key: camelot,
-      energy,
-      // Imported tracks have unknown popularity; treat as the DJ's own crate
-      // (leaning underground) rather than mainstream.
-      popularity: 35,
-      year: parseYear(get("year")),
-      durationSec: parseDuration(get("duration")),
-      sources: ["Local"] as Source[],
-      tags,
-    });
+    tracks.push(
+      buildTrack({
+        title,
+        artist: get("artist"),
+        label: get("label"),
+        genre: get("genre"),
+        bpm,
+        key,
+        energy,
+        year: parseYear(get("year")),
+        durationSec: parseDuration(get("duration")),
+      }),
+    );
   }
 
-  if (unparsedKeys > 0) {
-    warnings.push(`${unparsedKeys} track(s) had an unrecognized key — defaulted to 8A.`);
-  }
-  if (skipped > 0) {
-    warnings.push(`${skipped} row(s) skipped (missing title or BPM).`);
-  }
+  if (unparsedKeys > 0) warnings.push(`${unparsedKeys} track(s) had an unrecognized key — defaulted to 8A.`);
+  if (skipped > 0) warnings.push(`${skipped} row(s) skipped (missing title or BPM).`);
 
-  return { tracks, warnings, rowsParsed: tracks.length, rowsSkipped: skipped, detectedColumns };
+  return { tracks, warnings, rowsParsed: tracks.length, rowsSkipped: skipped, format: "csv", detectedColumns };
 }
 
 function mapColumns(headers: string[]): Partial<Record<Field, number>> {
@@ -170,48 +138,19 @@ function splitRow(line: string, delimiter: string): string[] {
   return cells;
 }
 
-function parseBpm(raw: string): number | null {
-  const n = parseFloat(raw.replace(",", "."));
-  if (!isFinite(n) || n < 60 || n > 250) return null;
-  // Halve/double obviously off-grid tempos into a sane DJ range.
-  let bpm = n;
-  if (bpm < 90) bpm *= 2;
-  if (bpm > 200) bpm /= 2;
-  return Math.round(bpm);
-}
-
-function parseEnergy(rawEnergy: string, comments: string): number {
-  const direct = parseInt(rawEnergy, 10);
-  if (direct >= 1 && direct <= 10) return direct;
-  // Mixed In Key writes "Energy 7" / "Energy Level 8" into comments.
-  const m = /energy\s*(?:level)?\s*(\d{1,2})/i.exec(comments);
-  if (m) {
-    const e = parseInt(m[1], 10);
-    if (e >= 1 && e <= 10) return e;
-  }
-  return 5; // neutral default
-}
-
-function parseYear(raw: string): number {
+function parseYear(raw: string): number | null {
   const m = /(19|20)\d{2}/.exec(raw);
-  return m ? parseInt(m[0], 10) : 2020;
+  return m ? parseInt(m[0], 10) : null;
 }
 
-function parseDuration(raw: string): number {
-  if (!raw) return 360;
+function parseDuration(raw: string): number | null {
+  if (!raw) return null;
   const parts = raw.split(":").map((p) => parseInt(p, 10));
   if (parts.some((p) => isNaN(p))) {
     const secs = parseInt(raw, 10);
-    return isNaN(secs) ? 360 : secs;
+    return isNaN(secs) ? null : secs;
   }
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return parts[0] || 360;
-}
-
-/** Small deterministic string hash for stable, dedupe-able track ids. */
-function hash(s: string): string {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
+  return parts[0] || null;
 }
