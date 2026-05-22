@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+}
+
+html,
+body {
+  background-color: #05060a;
+  color: #e7eaf3;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient backdrop: faint grid + radial glows for the club/underground feel. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    radial-gradient(60% 50% at 15% 0%, rgba(139, 92, 246, 0.12), transparent 70%),
+    radial-gradient(50% 45% at 90% 10%, rgba(34, 229, 214, 0.1), transparent 70%),
+    radial-gradient(70% 60% at 50% 110%, rgba(255, 43, 214, 0.08), transparent 70%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 50% 30%, black, transparent 85%);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0c14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2438;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3050;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-white/5 bg-ink-700/60 backdrop-blur-sm;
+  }
+  .panel-hover {
+    @apply transition-colors hover:border-neon-cyan/30 hover:bg-ink-600/60;
+  }
+  .label-cap {
+    @apply text-[11px] font-mono uppercase tracking-[0.18em] text-white/40;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-neon-cyan/90 text-ink-900 hover:bg-neon-cyan hover:shadow-glow;
+  }
+  .btn-ghost {
+    @apply btn border border-white/10 text-white/80 hover:border-white/25 hover:bg-white/5;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors;
+  }
+  .input {
+    @apply w-full rounded-xl border border-white/10 bg-ink-800/80 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/30;
+  }
+}
