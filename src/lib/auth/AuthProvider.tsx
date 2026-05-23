@@ -18,9 +18,15 @@ interface AuthValue {
   configured: boolean;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error?: string }>;
+  signUp: (email: string, password: string) => Promise<{ error?: string; needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  /** Sends a password-reset email. The link lands on /reset-password. */
+  requestPasswordReset: (email: string) => Promise<{ error?: string }>;
+  /** Updates the current user's password (used on /reset-password after click-through). */
+  updatePassword: (newPassword: string) => Promise<{ error?: string }>;
+  /** Deletes the user's data + auth account via the server route. */
+  deleteAccount: () => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -54,8 +60,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string) => {
       if (!client) return { error: "Cloud sync is not configured." };
-      const { error } = await client.auth.signUp({ email, password });
-      return error ? { error: error.message } : {};
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/` : undefined,
+        },
+      });
+      if (error) return { error: error.message };
+      // Supabase returns no active session when email confirmation is required.
+      return { needsConfirmation: !data.session };
     },
     [client],
   );
@@ -73,9 +87,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (client) await client.auth.signOut();
   }, [client]);
 
+  const requestPasswordReset = useCallback(
+    async (email: string) => {
+      if (!client) return { error: "Cloud sync is not configured." };
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo:
+          typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined,
+      });
+      return error ? { error: error.message } : {};
+    },
+    [client],
+  );
+
+  const updatePassword = useCallback(
+    async (newPassword: string) => {
+      if (!client) return { error: "Cloud sync is not configured." };
+      const { error } = await client.auth.updateUser({ password: newPassword });
+      return error ? { error: error.message } : {};
+    },
+    [client],
+  );
+
+  const deleteAccount = useCallback(async () => {
+    if (!client) return { error: "Cloud sync is not configured." };
+    const {
+      data: { session },
+    } = await client.auth.getSession();
+    if (!session) return { error: "Not signed in." };
+
+    const res = await fetch("/api/delete-account", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ message: "Delete failed." }));
+      return { error: body.message ?? "Delete failed." };
+    }
+    // Server confirmed deletion; tear down the local session.
+    await client.auth.signOut();
+    return {};
+  }, [client]);
+
   const value: AuthValue = useMemo(
-    () => ({ client, configured: Boolean(client), user, loading, signUp, signIn, signOut }),
-    [client, user, loading, signUp, signIn, signOut],
+    () => ({
+      client,
+      configured: Boolean(client),
+      user,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      requestPasswordReset,
+      updatePassword,
+      deleteAccount,
+    }),
+    [client, user, loading, signUp, signIn, signOut, requestPasswordReset, updatePassword, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
