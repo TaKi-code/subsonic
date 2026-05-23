@@ -4,6 +4,7 @@ import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { ToastProvider } from "@/components/Toast";
+import { PreviewProvider } from "@/lib/preview/PreviewProvider";
 
 export const metadata: Metadata = {
   title: "SUBSONIC — AI crate-digging for DJs",
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased">
         <AuthProvider>
           <ToastProvider>
+            <PreviewProvider>
             <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col">
               <Nav />
               <main className="flex-1 px-5 pb-24 pt-6 sm:px-8">{children}</main>
@@ -33,6 +35,7 @@ export default function RootLayout({
                 </div>
               </footer>
             </div>
+            </PreviewProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

@@ -10,6 +10,7 @@ import { formatTracklist, downloadText, slugify } from "@/lib/export/tracklist";
 import { useToast } from "@/components/Toast";
 import { CamelotBadge, EnergyMeter, ScoreBar, Stat } from "@/components/ui";
 import { EnergyCurve } from "@/components/EnergyCurve";
+import { PreviewButton } from "@/components/PreviewButton";
 
 const SHAPES: { id: SetShape; label: string; desc: string }[] = [
   { id: "warmup", label: "Warmup", desc: "Slow steady build, never peaks" },
@@ -302,6 +303,7 @@ export default function GeneratorPage() {
                     <div className="flex items-center gap-3">
                       <span className="cursor-grab select-none text-white/25 active:cursor-grabbing" title="Drag to reorder">⠿</span>
                       <span className="w-5 shrink-0 text-center font-mono text-sm text-white/30">{slot.position + 1}</span>
+                      <PreviewButton track={slot.track} size="sm" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-semibold text-white">{slot.track.title}</div>
                         <div className="truncate text-sm text-white/50">{slot.track.artist} · {slot.track.label}</div>

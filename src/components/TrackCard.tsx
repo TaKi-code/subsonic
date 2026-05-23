@@ -2,6 +2,7 @@
 
 import type { Track } from "@/lib/types";
 import { CamelotBadge, EnergyMeter, SourceBadges } from "./ui";
+import { PreviewButton } from "./PreviewButton";
 
 export function TrackCard({
   track,
@@ -19,9 +20,12 @@ export function TrackCard({
   return (
     <div className={`panel panel-hover animate-rise p-4 ${compact ? "" : "flex flex-col gap-3"}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate font-semibold text-white">{track.title}</div>
-          <div className="truncate text-sm text-white/55">{track.artist}</div>
+        <div className="flex min-w-0 items-start gap-2.5">
+          <PreviewButton track={track} size="sm" />
+          <div className="min-w-0">
+            <div className="truncate font-semibold text-white">{track.title}</div>
+            <div className="truncate text-sm text-white/55">{track.artist}</div>
+          </div>
         </div>
         {typeof score === "number" && (
           <span className="shrink-0 rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-1 font-mono text-xs font-bold text-neon-cyan">
