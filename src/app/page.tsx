@@ -56,13 +56,16 @@ export default function Home() {
           </div>
           <div className="mt-8 flex flex-wrap gap-6 text-sm">
             <span className="text-white/50">
-              <span className="font-mono text-lg font-bold text-neon-cyan">{TRACKS.length}</span> tracks indexed
+              <span className="font-mono text-lg font-bold text-neon-cyan">{TRACKS.length}</span> demo tracks
+              <span className="block text-[11px] text-white/30">import your own to expand</span>
             </span>
             <span className="text-white/50">
-              <span className="font-mono text-lg font-bold text-neon-violet">{undergroundCount}</span> hidden gems
+              <span className="font-mono text-lg font-bold text-neon-violet">3</span> import formats
+              <span className="block text-[11px] text-white/30">Rekordbox · Traktor · CSV</span>
             </span>
             <span className="text-white/50">
-              <span className="font-mono text-lg font-bold text-neon-magenta">5</span> source connectors
+              <span className="font-mono text-lg font-bold text-neon-magenta">{undergroundCount}</span> hidden gems
+              <span className="block text-[11px] text-white/30">in the demo crate</span>
             </span>
           </div>
         </div>

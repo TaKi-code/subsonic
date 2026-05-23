@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
@@ -23,8 +24,13 @@ export default function RootLayout({
             <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col">
               <Nav />
               <main className="flex-1 px-5 pb-24 pt-6 sm:px-8">{children}</main>
-              <footer className="border-t border-white/5 px-8 py-6 text-center text-xs text-white/30">
-                SUBSONIC · algorithmic crate-digging engine · seed library, no external keys required
+              <footer className="border-t border-white/5 px-5 py-6 text-center text-xs text-white/30 sm:px-8">
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                  <span>SUBSONIC · AI crate-digging engine</span>
+                  <span className="text-white/15">·</span>
+                  <Link href="/privacy" className="hover:text-white/60">Privacy</Link>
+                  <Link href="/terms" className="hover:text-white/60">Terms</Link>
+                </div>
               </footer>
             </div>
           </ToastProvider>

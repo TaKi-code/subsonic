@@ -223,7 +223,11 @@ export function AccountButton() {
   }
 }
 
-/** Reusable modal shell — backdrop, focus container, close button. */
+/**
+ * Reusable modal shell. Backdrop scrolls vertically and the inner flex uses
+ * `min-h-full` so the modal stays centered on tall screens but is always
+ * reachable (no clipped top) on short screens.
+ */
 function Modal({
   title,
   onClose,
@@ -235,15 +239,20 @@ function Modal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="panel w-full max-w-sm space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{title}</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white">✕</button>
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div
+          className="panel w-full max-w-sm space-y-4 p-6 my-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white">{title}</h2>
+            <button onClick={onClose} className="text-white/40 hover:text-white">✕</button>
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </div>
   );
