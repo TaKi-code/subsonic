@@ -5,6 +5,7 @@ import type { DiscoveryFilters, Genre, ScoredTrack } from "@/lib/types";
 import { GENRES, LABELS } from "@/lib/data/tracks";
 import { discover } from "@/lib/engine";
 import { useLibrary } from "@/lib/library/useLibrary";
+import { useToast } from "@/components/Toast";
 import { TrackCard } from "@/components/TrackCard";
 
 const SHORTCUTS: { label: string; filters: DiscoveryFilters }[] = [
@@ -17,6 +18,7 @@ const SHORTCUTS: { label: string; filters: DiscoveryFilters }[] = [
 
 export default function DiscoverPage() {
   const { library, importedCount, hydrated } = useLibrary();
+  const toast = useToast();
   const [vibe, setVibe] = useState("");
   const [genres, setGenres] = useState<Genre[]>([]);
   const [bpm, setBpm] = useState<[number, number]>([118, 150]);
@@ -69,6 +71,20 @@ export default function DiscoverPage() {
         body: JSON.stringify({ query: q }),
       });
       const data = await res.json();
+
+      // 429 — rate-limited. Fall back to the algorithmic matcher locally so
+      // the search still returns something, and surface the limit to the user.
+      if (res.status === 429) {
+        toast.error(data.message ?? "Daily AI search limit reached.");
+        setResults(discover(library, { vibe: q, limit: 30 }));
+        setInterpretation({
+          source: "fallback",
+          rationale: data.message ?? "Daily AI limit reached — using the algorithmic matcher.",
+          vibeKeywords: [],
+        });
+        return;
+      }
+
       setResults(discover(library, data.filters ?? { vibe: q, limit: 30 }));
       setInterpretation({
         source: data.source,

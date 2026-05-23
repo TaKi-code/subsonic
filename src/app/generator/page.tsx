@@ -7,6 +7,7 @@ import { generateSet, assembleSet, suggestReplacements } from "@/lib/engine";
 import { useLibrary } from "@/lib/library/useLibrary";
 import { useSavedSets } from "@/lib/library/useSavedSets";
 import { formatTracklist, downloadText, slugify } from "@/lib/export/tracklist";
+import { useToast } from "@/components/Toast";
 import { CamelotBadge, EnergyMeter, ScoreBar, Stat } from "@/components/ui";
 import { EnergyCurve } from "@/components/EnergyCurve";
 
@@ -26,6 +27,7 @@ function fmtDuration(sec: number): string {
 export default function GeneratorPage() {
   const { library, importedCount } = useLibrary();
   const { sets, saveSet, removeSet } = useSavedSets();
+  const toast = useToast();
   const [durationMin, setDurationMin] = useState(60);
   const [shape, setShape] = useState<SetShape>("journey");
   const [genres, setGenres] = useState<Genre[]>(["Techno", "Melodic Techno"]);
@@ -100,6 +102,7 @@ export default function GeneratorPage() {
     if (!set || !lastRequest) return;
     const name = saveName.trim() || `${shape} · ${durationMin}min`;
     saveSet(name, lastRequest, set);
+    toast.success(`Saved "${name}".`);
     setSaveName("");
   }
 
@@ -120,6 +123,7 @@ export default function GeneratorPage() {
     if (!set) return;
     const name = saveName.trim() || `SUBSONIC ${shape} set`;
     downloadText(`${slugify(name)}.txt`, formatTracklist(name, set));
+    toast.success("Tracklist downloaded.");
   }
 
   return (

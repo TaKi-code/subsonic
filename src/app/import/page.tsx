@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { parseLibrary, type ImportResult, type LibraryFormat } from "@/lib/import";
 import { useLibrary } from "@/lib/library/useLibrary";
+import { useToast } from "@/components/Toast";
 import { CamelotBadge, EnergyMeter } from "@/components/ui";
 
 const FORMAT_LABEL: Record<LibraryFormat, string> = {
@@ -21,6 +22,7 @@ Deep Current,Echo Marl,122,Dm,Dub Techno,Echocord,8:00,Energy 4`;
 
 export default function ImportPage() {
   const { imported, importedCount, seedCount, addTracks, clearImported } = useLibrary();
+  const toast = useToast();
   const [text, setText] = useState("");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -46,9 +48,13 @@ export default function ImportPage() {
   }
 
   function confirmImport() {
-    if (!result || result.tracks.length === 0) return;
+    if (!result || result.tracks.length === 0) {
+      toast.error("Nothing to import — no parseable tracks found.");
+      return;
+    }
     addTracks(result.tracks);
     setJustImported(result.tracks.length);
+    toast.success(`Imported ${result.tracks.length} track${result.tracks.length === 1 ? "" : "s"}.`);
     setResult(null);
     setText("");
     setFileName(null);

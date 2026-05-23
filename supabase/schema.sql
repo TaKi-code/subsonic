@@ -37,3 +37,24 @@ create policy "update own data"
 create policy "delete own data"
   on public.user_data for delete
   using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- AI rate-limit counters (per-IP daily window). See migration_ratelimit.sql
+-- for the standalone migration version of this block.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.ai_rate_limits (
+  ip           text         primary key,
+  window_start timestamptz  not null default now(),
+  count        integer      not null default 0
+);
+
+alter table public.ai_rate_limits enable row level security;
+
+drop policy if exists "anon rate-limit access" on public.ai_rate_limits;
+
+create policy "anon rate-limit access"
+  on public.ai_rate_limits
+  for all
+  using (true)
+  with check (true);
